@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>招聘岗位数据治理与可视化分析平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #667eea;
+        }
+        
+        .stat-card h3 {
+            color: #999;
+            font-size: 0.9em;
+            font-weight: 500;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .stat-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .filters {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .filters h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .filter-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .filter-group input,
+        .filter-group select {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .filter-group button {
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .filter-group button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-container h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .chart {
+            width: 100%;
+            height: 400px;
+            min-height: 300px;
+        }
+        
+        .jobs-list {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .jobs-list h2 {
+            color: #333;
+            padding: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            font-size: 1.3em;
+        }
+        
+        .jobs-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .jobs-table thead {
+            background: #f8f9fa;
+        }
+        
+        .jobs-table th {
+            color: #666;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .jobs-table td {
+            color: #333;
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .jobs-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .job-title {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .salary {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .quality-score {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .quality-score.high {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .quality-score.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .quality-score.low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .trace-link {
+            color: #667eea;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .trace-link:hover {
+            text-decoration: underline;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .pagination button:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+        
+        .modal-header h2 {
+            color: #333;
+            font-size: 1.3em;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .close-btn:hover {
+            color: #333;
+        }
+        
+        .trace-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .trace-info label {
+            display: block;
+            color: #666;
+            font-size: 0.9em;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .trace-info value {
+            display: block;
+            color: #333;
+            font-size: 1em;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>📋 招聘岗位数据治理与可视化分析平台</h1>
+            <p>全链路数据采集 → 自动ETL → 规范化存储 → 分析可视化 → 数据追溯</p>
+        </div>
+        
+        <!-- 统计数据 -->
+        <div class="stats">
+            <div class="stat-card">
+                <h3>💼 总职位数</h3>
+                <div class="value" id="total-jobs">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>📄 总导入次数</h3>
+                <div class="value" id="total-imports">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>📊 平均质量评分</h3>
+                <div class="value" id="avg-quality">-</div>
+            </div>
+        </div>
+        
+        <!-- 筛选条件 -->
+        <div class="filters">
+            <h2>🔍 筛选条件</h2>
+            <div class="filter-group">
+                <input type="text" id="city-filter" placeholder="输入城市 (如: 北京)">
+                <input type="number" id="min-salary" placeholder="最低薪资">
+                <input type="number" id="max-salary" placeholder="最高薪资">
+                <input type="text" id="skill-filter" placeholder="输入技能 (如: Python)">
+                <button onclick="searchJobs()">🔍 查询</button>
+                <button onclick="resetFilters()" style="background: #999;">❌ 重置</button>
+            </div>
+        </div>
+        
+        <!-- 图表 -->
+        <div class="charts">
+            <div class="chart-container">
+                <h3>📊 分析1：各城市薪资水平</h3>
+                <div class="chart" id="salary-chart"></div>
+            </div>
+            <div class="chart-container">
+                <h3>📊 分析2：技能需求排行</h3>
+                <div class="chart" id="skills-chart"></div>
+            </div>
+            <div class="chart-container">
+                <h3>📊 分析3：地区分布</h3>
+                <div class="chart" id="region-chart"></div>
+            </div>
+        </div>
+        
+        <!-- 职位列表 -->
+        <div class="jobs-list">
+            <h2>📄 职位详情</h2>
+            <table class="jobs-table" id="jobs-table">
+                <thead>
+                    <tr>
+                        <th>职位名称</th>
+                        <th>公司</th>
+                        <th>地点</th>
+                        <th>薪资范围</th>
+                        <th>质量评分</th>
+                        <th>追溯</th>
+                    </tr>
+                </thead>
+                <tbody id="jobs-tbody">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                            加载中...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+    
+    <!-- 追溯模态框 -->
+    <div class="modal" id="trace-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔍 数据追溯</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="trace-content"></div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let currentPage = 1;
+        let currentFilters = {};
+        
+        async function initPage() {
+            await loadStats();
+            await loadCharts();
+            await searchJobs();
+        }
+        
+        async function fetchAPI(endpoint) {
+            try {
+                const response = await axios.get(`${API_BASE}${endpoint}`);
+                return response.data;
+            } catch (error) {
+                console.error('API错误:', error);
+                return null;
+            }
+        }
+        
+        async function loadStats() {
+            const data = await fetchAPI('/api/stats/overview');
+            if (data) {
+                document.getElementById('total-jobs').textContent = data.total_jobs || 0;
+                document.getElementById('total-imports').textContent = data.total_imports || 0;
+                document.getElementById('avg-quality').textContent = (data.avg_quality_score || 0).toFixed(1);
+            }
+        }
+        
+        async function loadCharts() {
+            const salaryData = await fetchAPI('/api/analytics/salary-by-city');
+            if (salaryData) drawSalaryChart(salaryData.data);
+            
+            const skillsData = await fetchAPI('/api/analytics/skills-ranking');
+            if (skillsData) drawSkillsChart(skillsData.data);
+            
+            const regionData = await fetchAPI('/api/analytics/jobs-by-region');
+            if (regionData) drawRegionChart(regionData.data);
+        }
+        
+        function drawSalaryChart(data) {
+            const chart = echarts.init(document.getElementById('salary-chart'));
+            const cities = data.map(d => d.city);
+            const salaries = data.map(d => d.avg_salary);
+            
+            chart.setOption({
+                xAxis: { type: 'category', data: cities, axisLabel: { rotate: 45 } },
+                yAxis: { type: 'value', name: '平均薪资' },
+                series: [{ data: salaries.map((sal, idx) => ({ value: sal, city: cities[idx], itemStyle: { color: '#667eea' } })), type: 'bar' }],
+                tooltip: { formatter: function(params) { return params.data.city + '<br/>平均薪资: ' + params.value.value; } }
+            });
+            
+            chart.on('click', function(params) {
+                if (params.data.city) {
+                    document.getElementById('city-filter').value = params.data.city;
+                    searchJobs();
+                }
+            });
+        }
+        
+        function drawSkillsChart(data) {
+            const chart = echarts.init(document.getElementById('skills-chart'));
+            const skills = data.map(d => d.skill);
+            const counts = data.map(d => d.count);
+            
+            chart.setOption({
+                xAxis: { type: 'category', data: skills, axisLabel: { rotate: 45 } },
+                yAxis: { type: 'value', name: '需求量' },
+                series: [{ data: counts.map((cnt, idx) => ({ value: cnt, skill: skills[idx], itemStyle: { color: '#764ba2' } })), type: 'bar' }],
+                tooltip: { formatter: function(params) { return params.data.skill + '<br/>需求量: ' + params.data.value; } }
+            });
+            
+            chart.on('click', function(params) {
+                if (params.data.skill) {
+                    document.getElementById('skill-filter').value = params.data.skill;
+                    searchJobs();
+                }
+            });
+        }
+        
+        function drawRegionChart(data) {
+            const chart = echarts.init(document.getElementById('region-chart'));
+            
+            chart.setOption({
+                tooltip: { trigger: 'item' },
+                series: [{ name: '职位数量', type: 'pie', radius: '50%', data: data.map(d => ({ name: d.region, value: d.count })), emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } } }]
+            });
+            
+            chart.on('click', function(params) {
+                document.getElementById('city-filter').value = params.data.name;
+                searchJobs();
+            });
+        }
+        
+        async function searchJobs() {
+            currentPage = 1;
+            currentFilters = {
+                city: document.getElementById('city-filter').value || undefined,
+                min_salary: parseInt(document.getElementById('min-salary').value) || undefined,
+                max_salary: parseInt(document.getElementById('max-salary').value) || undefined,
+                skill: document.getElementById('skill-filter').value || undefined,
+                page: 1,
+                page_size: 10
+            };
+            
+            Object.keys(currentFilters).forEach(key => {
+                if (currentFilters[key] === undefined) delete currentFilters[key];
+            });
+            
+            await loadJobs();
+        }
+        
+        async function loadJobs() {
+            const params = new URLSearchParams({ ...currentFilters, page: currentPage, page_size: 10 });
+            const data = await fetchAPI(`/api/jobs/filter?${params}`);
+            
+            if (data) {
+                displayJobs(data.items);
+                displayPagination(data.page, data.pages, data.total);
+            }
+        }
+        
+        function displayJobs(jobs) {
+            const tbody = document.getElementById('jobs-tbody');
+            
+            if (jobs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">未找到符合条件的职位</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = jobs.map(job => `
+                <tr>
+                    <td class="job-title">${job.title}</td>
+                    <td>${job.company}</td>
+                    <td>${job.city}</td>
+                    <td class="salary">¥${job.salary_range}</td>
+                    <td><span class="quality-score ${getQualityClass(job.quality_score)}">${job.quality_score.toFixed(0)}</span></td>
+                    <td><a class="trace-link" onclick="showTrace(${job.job_id}, '${job.trace_url}', '${job.log_url}')">📍 追溯</a></td>
+                </tr>
+            `).join('');
+        }
+        
+        async function showTrace(jobId, rawUrl, logUrl) {
+            const rawData = await fetchAPI(rawUrl);
+            const logData = await fetchAPI(logUrl);
+            
+            if (rawData && logData) {
+                const modal = document.getElementById('trace-modal');
+                const content = document.getElementById('trace-content');
+                
+                content.innerHTML = `
+                    <div class="trace-info">
+                        <label>📄 数据来源</label>
+                        <value>${logData.source_url || 'sample_data'}</value>
+                    </div>
+                    <div class="trace-info">
+                        <label>📅 采集时间</label>
+                        <value>${logData.import_time || 'N/A'}</value>
+                    </div>
+                    <div class="trace-info">
+                        <label>📇 批次ID</label>
+                        <value>${logData.batch_id}</value>
+                    </div>
+                    <div class="trace-info">
+                        <label>📋 原始记录</label>
+                        <value><pre>${JSON.stringify(rawData.original_data, null, 2)}</pre></value>
+                    </div>
+                `;
+                
+                modal.classList.add('active');
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('trace-modal').classList.remove('active');
+        }
+        
+        function displayPagination(page, pages, total) {
+            const pagination = document.getElementById('pagination');
+            let html = '';
+            
+            if (page > 1) html += `<button onclick="goToPage(${page - 1})">< 上一页</button>`;
+            
+            for (let i = Math.max(1, page - 2); i <= Math.min(pages, page + 2); i++) {
+                html += `<button onclick="goToPage(${i})" class="${i === page ? 'active' : ''}">${i}</button>`;
+            }
+            
+            if (page < pages) html += `<button onclick="goToPage(${page + 1})">下一页 ></button>`;
+            
+            html += `<span style="margin-left: 20px; color: #999;">共 ${total} 条记录</span>`;
+            
+            pagination.innerHTML = html;
+        }
+        
+        function goToPage(page) {
+            currentPage = page;
+            loadJobs();
+            document.querySelector('.jobs-list').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function resetFilters() {
+            document.getElementById('city-filter').value = '';
+            document.getElementById('min-salary').value = '';
+            document.getElementById('max-salary').value = '';
+            document.getElementById('skill-filter').value = '';
+            searchJobs();
+        }
+        
+        function getQualityClass(score) {
+            if (score >= 80) return 'high';
+            if (score >= 60) return 'medium';
+            return 'low';
+        }
+        
+        window.addEventListener('load', initPage);
+    </script>
+</body>
+</html>
